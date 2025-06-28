@@ -68,12 +68,12 @@ private ProfissionalServicoRepository profissionalServicoRepository;
         throw new RuntimeException("ID do Profissional/Serviço é obrigatório");
     }
 
-    // Recarrega o cliente do banco
+   
     ClienteEntity cliente = clienteRepository.findById(agendamento.getCliente().getId())
             .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
     agendamento.setCliente(cliente);
 
-    // Recarrega o profissionalServico do banco
+
     ProfissionalServicoId id = agendamento.getProfissionalServico().getId();
     ProfissionalServicoEntity profissionalServico = profissionalServicoRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("ProfissionalServico não encontrado"));

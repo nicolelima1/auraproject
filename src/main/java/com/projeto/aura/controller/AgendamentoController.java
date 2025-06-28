@@ -1,12 +1,19 @@
 package com.projeto.aura.controller;
 
+import com.projeto.aura.DTO.AgendamentoDTO;
 import com.projeto.aura.entity.AgendamentoEntity;
+import com.projeto.aura.entity.ClienteEntity;
+import com.projeto.aura.entity.ProfissionalServicoEntity;
+import com.projeto.aura.entity.ProfissionalServicoId;
 import com.projeto.aura.service.AgendamentoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.sql.Date;
 import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/agendamentos")
@@ -19,19 +26,19 @@ public class AgendamentoController {
     }
 
     @PostMapping
-    public String agendar(@RequestParam int idCliente,
-                          @RequestParam int idProfissional,
-                          @RequestParam int idServico,
-                          @RequestParam String data,  // formato yyyy-MM-dd
-                          @RequestParam String hora,  // formato HH:mm:ss
-                          @RequestParam(required = false) String status) {
+    public String agendar(@RequestBody AgendamentoDTO dto) {
+    Date dataSql = Date.valueOf(dto.getData());
+    Time horaSql = Time.valueOf(dto.getHora());
 
-        Date dataSql = Date.valueOf(data);
-        Time horaSql = Time.valueOf(hora);
-
-        return service.agendarServico(idCliente, idProfissional, idServico, dataSql, horaSql, status);
-    }
-
+    return service.agendarServico(
+            dto.getIdCliente(),
+            dto.getIdProfissional(),
+            dto.getIdServico(),
+            dataSql,
+            horaSql,
+            dto.getStatus()
+    );
+}
 
     @GetMapping
     public List<AgendamentoEntity> listarTodos() {
@@ -45,14 +52,39 @@ public class AgendamentoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<AgendamentoEntity> atualizar(@PathVariable int id, @RequestBody AgendamentoEntity agendamento) {
-        return service.buscarPorId(id).map(existing -> {
-            agendamento.setId(id);
-            AgendamentoEntity atualizado = service.salvar(agendamento);
-            return ResponseEntity.ok(atualizado);
-        }).orElse(ResponseEntity.notFound().build());
+   @PutMapping("/{id}")
+public ResponseEntity<?> atualizar(@PathVariable int id, @RequestBody AgendamentoDTO dto) {
+    Optional<AgendamentoEntity> existenteOpt = service.buscarPorId(id);
+
+    if (existenteOpt.isEmpty()) {
+        return ResponseEntity.notFound().build();
     }
+
+    AgendamentoEntity agendamento = existenteOpt.get();
+
+   
+    ClienteEntity cliente = new ClienteEntity();
+    cliente.setId(dto.getIdCliente());
+    agendamento.setCliente(cliente);
+
+    
+    ProfissionalServicoId profServId = new ProfissionalServicoId();
+    profServId.setIdProfissional(dto.getIdProfissional());
+    profServId.setIdServico(dto.getIdServico());
+
+    ProfissionalServicoEntity profServ = new ProfissionalServicoEntity();
+    profServ.setId(profServId);
+    agendamento.setProfissionalServico(profServ);
+
+    agendamento.setData(LocalDate.parse(dto.getData()));
+    agendamento.setHora(LocalTime.parse(dto.getHora()));
+    agendamento.setStatus(dto.getStatus());
+
+    
+    AgendamentoEntity atualizado = service.salvar(agendamento);
+    return ResponseEntity.ok(atualizado);
+}
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable int id) {
